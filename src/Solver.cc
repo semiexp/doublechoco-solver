@@ -5,6 +5,7 @@
 #include "core/Solver.h"
 
 #include "BoardManager.h"
+#include "Connecter.h"
 #include "ShapeFinder.h"
 
 namespace {
@@ -28,6 +29,7 @@ std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem) {
 
     Glucose::Var origin = BoardManager::AllocateVariables(solver, problem.height(), problem.width());
     solver.addConstraint(std::make_unique<ShapeFinder>(problem, origin));
+    solver.addConstraint(std::make_unique<Connecter>(problem, origin));
 
     if (!solver.solve())
         return std::nullopt;
