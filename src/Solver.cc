@@ -7,6 +7,7 @@
 #include "BoardManager.h"
 #include "Connecter.h"
 #include "ShapeFinder.h"
+#include "SizeChecker.h"
 
 namespace {
 
@@ -33,6 +34,7 @@ std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem) {
     Glucose::Var origin = BoardManager::AllocateVariables(solver, problem.height(), problem.width());
     solver.addConstraint(std::make_unique<ShapeFinder>(problem, origin));
     solver.addConstraint(std::make_unique<Connecter>(problem, origin));
+    solver.addConstraint(std::make_unique<SizeChecker>(problem, origin));
 
     // Rough check to forbid unnecessary borders
     // TODO: add a compehensive check
@@ -75,5 +77,15 @@ std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem) {
             ret.vertical[y].push_back(ConvertBorder(board.vertical(y, x)));
         }
     }
+
+    /*
+    Glucose::vec<Glucose::Lit> clause;
+    for (Glucose::Var v : board.RelatedVariables()) {
+        clause.push(Glucose::mkLit(v, solver.modelValue(v) == l_True));
+    }
+    solver.addClause(clause);
+    printf("has another answer: %d\n", solver.solve());
+    */
+
     return ret;
 }
