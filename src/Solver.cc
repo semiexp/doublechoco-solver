@@ -27,15 +27,36 @@ DoublechocoAnswer::Border ConvertBorder(BoardManager::Border b) {
 std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem) {
     Glucose::Solver solver;
 
+    int height = problem.height();
+    int width = problem.width();
+
     Glucose::Var origin = BoardManager::AllocateVariables(solver, problem.height(), problem.width());
     solver.addConstraint(std::make_unique<ShapeFinder>(problem, origin));
     solver.addConstraint(std::make_unique<Connecter>(problem, origin));
 
+    // Rough check to forbid unnecessary borders
+    // TODO: add a compehensive check
+    for (int y = 0; y < height - 1; ++y) {
+        for (int x = 0; x < width - 1; ++x) {
+            std::vector<Glucose::Var> vars;
+            vars.push_back(origin + y * (width - 1) + x);
+            vars.push_back(origin + (y + 1) * (width - 1) + x);
+            vars.push_back(origin + height * (width - 1) + y * width + x);
+            vars.push_back(origin + height * (width - 1) + y * width + (x + 1));
+            // !v[i] & !v[j] & !v[k] => !v[l]
+            for (int i = 0; i < 4; ++i) {
+                Glucose::vec<Glucose::Lit> clause;
+                for (int j = 0; j < 4; ++j) {
+                    clause.push(Glucose::mkLit(vars[j], i == j));
+                }
+                solver.addClause(clause);
+            }
+        }
+    }
+
     if (!solver.solve())
         return std::nullopt;
 
-    int height = problem.height();
-    int width = problem.width();
     DoublechocoAnswer ret;
     ret.horizontal = std::vector<std::vector<DoublechocoAnswer::Border>>(height);
     ret.vertical = std::vector<std::vector<DoublechocoAnswer::Border>>(height - 1);
