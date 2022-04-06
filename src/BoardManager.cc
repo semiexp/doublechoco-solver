@@ -16,6 +16,16 @@ BoardManager::Border BoardManager::vertical(int y, int x) const {
     return vertical_[y * width_ + x];
 }
 
+Glucose::Var BoardManager::HorizontalVar(int y, int x) const {
+    assert(0 <= y && y < height_ && 0 <= x && x < width_ - 1);
+    return origin_ + y * (width_ - 1) + x;
+}
+
+Glucose::Var BoardManager::VerticalVar(int y, int x) const {
+    assert(0 <= y && y < height_ - 1 && 0 <= x && x < width_);
+    return origin_ + height_ * (width_ - 1) + y * width_ + x;
+}
+
 void BoardManager::Decide(Glucose::Lit lit) {
     Glucose::Var v = Glucose::var(lit);
     int ofs = v - origin_;

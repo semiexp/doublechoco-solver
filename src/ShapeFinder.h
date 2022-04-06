@@ -20,4 +20,5 @@ public:
 private:
     Problem problem_;
     BoardManager board_;
+    std::vector<std::vector<Glucose::Lit>> reasons_;
 };

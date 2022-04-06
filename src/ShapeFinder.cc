@@ -131,6 +131,7 @@ Transform(const std::vector<std::pair<int, int>>& group, const std::vector<std::
 bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
     solver.registerUndo(var(p), this);
     board_.Decide(p);
+    reasons_.push_back({});
 
     int height = problem_.height();
     int width = problem_.width();
@@ -206,6 +207,7 @@ bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
             GetConnectedGroup(visited, problem_, board_, y, x, problem_.color(y, x), group, connections);
 
             std::set<std::vector<std::pair<int, int>>> unique_groups;
+            std::vector<std::pair<int, int>> blockers;
             bool found_ok = false;
             for (int t = 0; t < 8; ++t) {
                 auto [group_trans, connections_trans] =
@@ -219,6 +221,7 @@ bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
                     bool flg = true;
                     for (auto [dy, dx] : connections_trans) {
                         if (!is_connectable(y2 * 2 + dy, x2 * 2 + dx)) {
+                            blockers.push_back({y2 * 2 + dy, x2 * 2 + dx});
                             flg = false;
                             break;
                         }
@@ -233,6 +236,65 @@ bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
             }
 
             if (!found_ok) {
+                std::vector<Glucose::Lit> reason;
+
+                for (auto& [y2, x2] : blockers) {
+                    if (0 <= y2 && y2 < height * 2 - 1 && 0 <= x2 && x2 < width * 2 - 1) {
+                        if (problem_.color(y2 >> 1, x2 >> 1) != problem_.color((y2 + 1) >> 1, (x2 + 1) >> 1)) {
+                            continue;
+                        }
+                        if (y2 % 2 == 1) {
+                            reason.push_back(Glucose::mkLit(board_.VerticalVar(y2 >> 1, x2 >> 1)));
+                        } else {
+                            reason.push_back(Glucose::mkLit(board_.HorizontalVar(y2 >> 1, x2 >> 1)));
+                        }
+                    }
+                }
+                for (auto& [y2, x2] : group) {
+                    if (y2 > 0 && board_.vertical(y2 - 1, x2) == BoardManager::Border::kConnected &&
+                        problem_.color(y2 - 1, x2) == problem_.color(y2, x2)) {
+                        reason.push_back(Glucose::mkLit(board_.VerticalVar(y2 - 1, x2), true));
+                    }
+                    if (y2 < height - 1 && board_.vertical(y2, x2) == BoardManager::Border::kConnected &&
+                        problem_.color(y2 + 1, x2) == problem_.color(y2, x2)) {
+                        reason.push_back(Glucose::mkLit(board_.VerticalVar(y2, x2), true));
+                    }
+                    if (x2 > 0 && board_.horizontal(y2, x2 - 1) == BoardManager::Border::kConnected &&
+                        problem_.color(y2, x2 - 1) == problem_.color(y2, x2)) {
+                        reason.push_back(Glucose::mkLit(board_.HorizontalVar(y2, x2 - 1), true));
+                    }
+                    if (x2 < width - 1 && board_.horizontal(y2, x2) == BoardManager::Border::kConnected &&
+                        problem_.color(y2, x2 + 1) == problem_.color(y2, x2)) {
+                        reason.push_back(Glucose::mkLit(board_.HorizontalVar(y2, x2), true));
+                    }
+                }
+                std::vector<int> related_groups;
+                related_groups.push_back(group_id.at(y, x));
+                for (auto it = std::lower_bound(adjacent_groups.begin(), adjacent_groups.end(),
+                                                std::make_pair(group_id.at(y, x), -1));
+                     it != adjacent_groups.end() && it->first == gid; ++it) {
+                    related_groups.push_back(it->second);
+                }
+                for (int g : related_groups) {
+                    for (auto& [y2, x2] : groups[g]) {
+                        if (y2 > 0 && board_.vertical(y2 - 1, x2) == BoardManager::Border::kWall) {
+                            reason.push_back(Glucose::mkLit(board_.VerticalVar(y2 - 1, x2)));
+                        }
+                        if (y2 < height - 1 && board_.vertical(y2, x2) == BoardManager::Border::kWall) {
+                            reason.push_back(Glucose::mkLit(board_.VerticalVar(y2, x2)));
+                        }
+                        if (x2 > 0 && board_.horizontal(y2, x2 - 1) == BoardManager::Border::kWall) {
+                            reason.push_back(Glucose::mkLit(board_.HorizontalVar(y2, x2 - 1)));
+                        }
+                        if (x2 < width - 1 && board_.horizontal(y2, x2) == BoardManager::Border::kWall) {
+                            reason.push_back(Glucose::mkLit(board_.HorizontalVar(y2, x2)));
+                        }
+                    }
+                }
+
+                std::sort(reason.begin(), reason.end());
+                reason.erase(std::unique(reason.begin(), reason.end()), reason.end());
+                reasons_.back() = reason;
                 return false;
             }
         }
@@ -243,7 +305,19 @@ bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
 
 void ShapeFinder::calcReason(Glucose::Solver& solver, Glucose::Lit p, Glucose::Lit extra,
                              Glucose::vec<Glucose::Lit>& out_reason) {
-    board_.calcReasonSimple(p, extra, out_reason);
+    if (reasons_.back().empty()) {
+        board_.calcReasonSimple(p, extra, out_reason);
+    } else {
+        for (auto& lit : reasons_.back()) {
+            out_reason.push(lit);
+        }
+        if (extra != Glucose::lit_Undef) {
+            out_reason.push(extra);
+        }
+    }
 }
 
-void ShapeFinder::undo(Glucose::Solver& solver, Glucose::Lit p) { board_.Undo(p); }
+void ShapeFinder::undo(Glucose::Solver& solver, Glucose::Lit p) {
+    board_.Undo(p);
+    reasons_.pop_back();
+}

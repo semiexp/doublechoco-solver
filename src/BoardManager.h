@@ -20,6 +20,9 @@ public:
 
     Border horizontal(int y, int x) const;
     Border vertical(int y, int x) const;
+    Glucose::Var HorizontalVar(int y, int x) const;
+    Glucose::Var VerticalVar(int y, int x) const;
+
     void Decide(Glucose::Lit lit);
     void Undo(Glucose::Lit lit);
 
