@@ -207,7 +207,6 @@ bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
             GetConnectedGroup(visited, problem_, board_, y, x, problem_.color(y, x), group, connections);
 
             std::set<std::vector<std::pair<int, int>>> unique_groups;
-            std::vector<std::pair<int, int>> blockers;
             bool found_ok = false;
             for (int t = 0; t < 8; ++t) {
                 auto [group_trans, connections_trans] =
@@ -221,7 +220,6 @@ bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
                     bool flg = true;
                     for (auto [dy, dx] : connections_trans) {
                         if (!is_connectable(y2 * 2 + dy, x2 * 2 + dx)) {
-                            blockers.push_back({y2 * 2 + dy, x2 * 2 + dx});
                             flg = false;
                             break;
                         }
@@ -236,6 +234,50 @@ bool ShapeFinder::propagate(Glucose::Solver& solver, Glucose::Lit p) {
             }
 
             if (!found_ok) {
+                std::set<std::pair<int, int>> blockers;
+                unique_groups.clear();
+
+                for (int t = 0; t < 8; ++t) {
+                    auto [group_trans, connections_trans] =
+                        Transform(group, connections, (t >> 2) * 2 - 1, ((t >> 1) & 1) * 2 - 1, t & 1);
+                    if (!unique_groups.emplace(group_trans).second) {
+                        continue;
+                    }
+
+                    for (auto [y2, x2] : adj_candidates) {
+                        assert(problem_.color(y, x) != problem_.color(y2, x2));
+
+                        bool skip = false;
+                        std::vector<std::pair<int, int>> blocker_cand;
+                        for (auto [dy, dx] : connections_trans) {
+                            int y3 = y2 * 2 + dy, x3 = x2 * 2 + dx;
+                            if (!(0 <= y3 && y3 < height * 2 - 1 && 0 <= x3 && x3 < width * 2 - 1)) {
+                                skip = true;
+                                break;
+                            }
+                            if (problem_.color(y3 >> 1, x3 >> 1) != problem_.color((y3 + 1) >> 1, (x3 + 1) >> 1)) {
+                                skip = true;
+                                break;
+                            }
+                            if (!is_connectable(y3, x3)) {
+                                if (blockers.count({y3, x3})) {
+                                    skip = true;
+                                    break;
+                                }
+                                blocker_cand.push_back({y3, x3});
+                            }
+                        }
+                        if (skip) {
+                            continue;
+                        }
+                        assert(!blocker_cand.empty());
+                        blockers.insert(blocker_cand[0]);
+                    }
+                    if (found_ok) {
+                        break;
+                    }
+                }
+
                 std::vector<Glucose::Lit> reason;
 
                 for (auto& [y2, x2] : blockers) {
