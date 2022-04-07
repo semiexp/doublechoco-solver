@@ -149,6 +149,13 @@ bool SizeChecker::propagate(Glucose::Solver& solver, Glucose::Lit p) {
                 // Different clue in a connected component
                 return false;
             }
+            // Connected component of a color is unconditionally larger than that of the another color
+            if (group_by_color[0] != -1 && group_size[group_by_color[0]] < size_by_color[1]) {
+                return false;
+            }
+            if (group_by_color[1] != -1 && group_size[group_by_color[1]] < size_by_color[0]) {
+                return false;
+            }
             if (clue_num != -1) {
                 if (clue_num < size_by_color[0] || clue_num < size_by_color[1]) {
                     // Connected component larger than the clue number
