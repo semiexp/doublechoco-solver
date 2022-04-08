@@ -194,13 +194,11 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                         if (board_.vertical(py >> 1, px >> 1) == BoardManager::Border::kWall) {
                             invalid = true;
                             blocker_cand = Glucose::mkLit(board_.VerticalVar(py >> 1, px >> 1), false);
-                            break;
                         }
                     } else {
                         if (board_.horizontal(py >> 1, px >> 1) == BoardManager::Border::kWall) {
                             invalid = true;
                             blocker_cand = Glucose::mkLit(board_.HorizontalVar(py >> 1, px >> 1), false);
-                            break;
                         }
                     }
                 }
