@@ -227,8 +227,11 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                 potential_unit_id[c] = pb_id;
             } else if (potential_unit_id[c] != pb_id) {
                 // Multiple units of the same color in a block
-                // TODO: compute reason
-                return std::vector<Glucose::Lit>();
+                // TODO: compute more refined reason
+                auto ret = board_.ReasonForBlock(info, i);
+                auto app = board_.ReasonForPotentialUnitBoundary(info, pb_id);
+                ret.insert(ret.end(), app.begin(), app.end());
+                return ret;
             }
 
             ++size_by_color[c];
@@ -238,35 +241,45 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                     num = n;
                 } else if (num != n) {
                     // Different clue numbers in a block
-                    // TODO: compute reason (path connecting <num> and (y, x))
-                    return std::vector<Glucose::Lit>();
+                    // TODO: compute more refined reason (path connecting <num> and (y, x))
+                    return board_.ReasonForBlock(info, i);
                 }
             }
         }
 
         // Connected component of a color is unconditionally larger than that of the another color
-        // TODO: compute reason
         if (potential_unit_id[0] != -1 && info.potential_units.group(potential_unit_id[0]).size() < size_by_color[1]) {
-            return std::vector<Glucose::Lit>();
+            auto ret = board_.ReasonForBlock(info, i);
+            auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
+            ret.insert(ret.end(), app.begin(), app.end());
+            return ret;
         }
         if (potential_unit_id[1] != -1 && info.potential_units.group(potential_unit_id[1]).size() < size_by_color[0]) {
-            return std::vector<Glucose::Lit>();
+            auto ret = board_.ReasonForBlock(info, i);
+            auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
+            ret.insert(ret.end(), app.begin(), app.end());
+            return ret;
         }
 
         if (num != -1) {
             // Connected component larger than the clue number
-            // TODO: compute rason
             if (num < size_by_color[0] || num < size_by_color[1]) {
-                return std::vector<Glucose::Lit>();
+                return board_.ReasonForBlock(info, i);
             }
 
             // Possible connected component size smaller than the clue number
-            // TODO: compute reason
+            // TODO: compute more refined reason
             if (potential_unit_id[0] != -1 && num > info.potential_units.group(potential_unit_id[0]).size()) {
-                return std::vector<Glucose::Lit>();
+                auto ret = board_.ReasonForBlock(info, i);
+                auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
+                ret.insert(ret.end(), app.begin(), app.end());
+                return ret;
             }
             if (potential_unit_id[1] != -1 && num > info.potential_units.group(potential_unit_id[1]).size()) {
-                return std::vector<Glucose::Lit>();
+                auto ret = board_.ReasonForBlock(info, i);
+                auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
+                ret.insert(ret.end(), app.begin(), app.end());
+                return ret;
             }
         }
     }

@@ -15,7 +15,7 @@ public:
     int group_id(int y, int x) const { return group_id_.at(y, x); }
     const std::vector<std::vector<std::pair<int, int>>>& groups() const { return groups_; }
     int num_groups() const { return groups_.size(); }
-    const std::vector<std::pair<int, int>>& group(int id) { return groups_[id]; };
+    const std::vector<std::pair<int, int>>& group(int id) const { return groups_[id]; };
 
 private:
     Grid<int> group_id_;
@@ -60,6 +60,12 @@ public:
     void Undo(Glucose::Lit lit);
 
     std::vector<Glucose::Var> RelatedVariables() const;
+
+    // Compute the reason (a set of literals) building a block
+    std::vector<Glucose::Lit> ReasonForBlock(const BoardInfo& info, int block_id) const;
+
+    // Compute the reason prohibiting a potential unit from expanding
+    std::vector<Glucose::Lit> ReasonForPotentialUnitBoundary(const BoardInfo& info, int potential_unit_id) const;
 
     // Computes the most straightforward "reason", in which all the known decisions are related.
     void calcReasonSimple(Glucose::Lit p, Glucose::Lit extra, Glucose::vec<Glucose::Lit>& out_reason);

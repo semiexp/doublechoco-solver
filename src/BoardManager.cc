@@ -87,6 +87,43 @@ std::vector<Glucose::Var> BoardManager::RelatedVariables() const {
     return ret;
 }
 
+std::vector<Glucose::Lit> BoardManager::ReasonForBlock(const BoardInfo& info, int block_id) const {
+    std::vector<Glucose::Lit> ret;
+    for (auto [y, x] : info.blocks.group(block_id)) {
+        if (y < height_ - 1 && info.blocks.group_id(y + 1, x) == block_id && vertical(y, x) == Border::kConnected) {
+            ret.push_back(Glucose::mkLit(VerticalVar(y, x), true));
+        }
+        if (x < width_ - 1 && info.blocks.group_id(y, x + 1) == block_id && horizontal(y, x) == Border::kConnected) {
+            ret.push_back(Glucose::mkLit(HorizontalVar(y, x), true));
+        }
+    }
+    return ret;
+}
+
+std::vector<Glucose::Lit> BoardManager::ReasonForPotentialUnitBoundary(const BoardInfo& info,
+                                                                       int potential_unit_id) const {
+    std::vector<Glucose::Lit> ret;
+    for (auto [y, x] : info.potential_units.group(potential_unit_id)) {
+        if (y > 0 && info.potential_units.group_id(y - 1, x) != potential_unit_id &&
+            problem_.color(y, x) == problem_.color(y - 1, x) && vertical(y - 1, x) == Border::kWall) {
+            ret.push_back(Glucose::mkLit(VerticalVar(y - 1, x)));
+        }
+        if (y < height_ - 1 && info.potential_units.group_id(y + 1, x) != potential_unit_id &&
+            problem_.color(y, x) == problem_.color(y + 1, x) && vertical(y, x) == Border::kWall) {
+            ret.push_back(Glucose::mkLit(VerticalVar(y, x)));
+        }
+        if (x > 0 && info.potential_units.group_id(y, x - 1) != potential_unit_id &&
+            problem_.color(y, x) == problem_.color(y, x - 1) && horizontal(y, x - 1) == Border::kWall) {
+            ret.push_back(Glucose::mkLit(HorizontalVar(y, x - 1)));
+        }
+        if (x < width_ - 1 && info.potential_units.group_id(y, x + 1) != potential_unit_id &&
+            problem_.color(y, x) == problem_.color(y, x + 1) && horizontal(y, x) == Border::kWall) {
+            ret.push_back(Glucose::mkLit(HorizontalVar(y, x)));
+        }
+    }
+    return ret;
+}
+
 void BoardManager::calcReasonSimple(Glucose::Lit p, Glucose::Lit extra, Glucose::vec<Glucose::Lit>& out_reason) {
     for (const Glucose::Lit lit : decisions_) {
         out_reason.push(lit);
