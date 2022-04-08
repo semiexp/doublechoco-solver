@@ -126,6 +126,81 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
     int width = problem_.width();
     BoardInfo info = board_.ComputeBoardInfo();
 
+    // connecter & size checker
+    for (int i = 0; i < info.blocks.num_groups(); ++i) {
+        int num = -1;
+        bool has_num[2] = {false, false};
+        int size_by_color[2] = {0, 0};
+        int potential_unit_id[2] = {-1, -1};
+        for (auto [y, x] : info.blocks.group(i)) {
+            int c = problem_.color(y, x);
+            int pb_id = info.potential_units.group_id(y, x);
+            if (potential_unit_id[c] == -1) {
+                potential_unit_id[c] = pb_id;
+            } else if (potential_unit_id[c] != pb_id) {
+                // Multiple units of the same color in a block
+                // TODO: compute more refined reason
+                auto ret = board_.ReasonForBlock(info, i);
+                auto app = board_.ReasonForPotentialUnitBoundary(info, pb_id);
+                ret.insert(ret.end(), app.begin(), app.end());
+                return ret;
+            }
+
+            ++size_by_color[c];
+            int n = problem_.num(y, x);
+            if (n > 0) {
+                has_num[c] = true;
+                if (num == -1) {
+                    num = n;
+                } else if (num != n) {
+                    // Different clue numbers in a block
+                    // TODO: compute more refined reason (path connecting <num> and (y, x))
+                    return board_.ReasonForBlock(info, i);
+                }
+            }
+        }
+
+        // Connected component of a color is unconditionally larger than that of the another color
+        if (potential_unit_id[0] != -1 && info.potential_units.group(potential_unit_id[0]).size() < size_by_color[1]) {
+            auto ret = board_.ReasonForBlock(info, i);
+            auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
+            ret.insert(ret.end(), app.begin(), app.end());
+            return ret;
+        }
+        if (potential_unit_id[1] != -1 && info.potential_units.group(potential_unit_id[1]).size() < size_by_color[0]) {
+            auto ret = board_.ReasonForBlock(info, i);
+            auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
+            ret.insert(ret.end(), app.begin(), app.end());
+            return ret;
+        }
+
+        if (num != -1) {
+            // Connected component larger than the clue number
+            if (num < size_by_color[0] || num < size_by_color[1]) {
+                return board_.ReasonForBlock(info, i);
+            }
+
+            // Possible connected component size smaller than the clue number
+            // TODO: compute more refined reason
+            if (potential_unit_id[0] != -1 && num > info.potential_units.group(potential_unit_id[0]).size()) {
+                auto ret = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
+                if (!has_num[0]) {
+                    auto app = board_.ReasonForBlock(info, i);
+                    ret.insert(ret.end(), app.begin(), app.end());
+                }
+                return ret;
+            }
+            if (potential_unit_id[1] != -1 && num > info.potential_units.group(potential_unit_id[1]).size()) {
+                auto ret = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
+                if (!has_num[1]) {
+                    auto app = board_.ReasonForBlock(info, i);
+                    ret.insert(ret.end(), app.begin(), app.end());
+                }
+                return ret;
+            }
+        }
+    }
+
     // shape finder
     std::set<std::pair<int, int>> adjacent_potential_units_set;
     for (int y = 0; y < height; ++y) {
@@ -265,81 +340,6 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
             }
 
             return std::vector<Glucose::Lit>(reason.begin(), reason.end());
-        }
-    }
-
-    // connecter & size checker
-    for (int i = 0; i < info.blocks.num_groups(); ++i) {
-        int num = -1;
-        bool has_num[2] = {false, false};
-        int size_by_color[2] = {0, 0};
-        int potential_unit_id[2] = {-1, -1};
-        for (auto [y, x] : info.blocks.group(i)) {
-            int c = problem_.color(y, x);
-            int pb_id = info.potential_units.group_id(y, x);
-            if (potential_unit_id[c] == -1) {
-                potential_unit_id[c] = pb_id;
-            } else if (potential_unit_id[c] != pb_id) {
-                // Multiple units of the same color in a block
-                // TODO: compute more refined reason
-                auto ret = board_.ReasonForBlock(info, i);
-                auto app = board_.ReasonForPotentialUnitBoundary(info, pb_id);
-                ret.insert(ret.end(), app.begin(), app.end());
-                return ret;
-            }
-
-            ++size_by_color[c];
-            int n = problem_.num(y, x);
-            if (n > 0) {
-                has_num[c] = true;
-                if (num == -1) {
-                    num = n;
-                } else if (num != n) {
-                    // Different clue numbers in a block
-                    // TODO: compute more refined reason (path connecting <num> and (y, x))
-                    return board_.ReasonForBlock(info, i);
-                }
-            }
-        }
-
-        // Connected component of a color is unconditionally larger than that of the another color
-        if (potential_unit_id[0] != -1 && info.potential_units.group(potential_unit_id[0]).size() < size_by_color[1]) {
-            auto ret = board_.ReasonForBlock(info, i);
-            auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
-            ret.insert(ret.end(), app.begin(), app.end());
-            return ret;
-        }
-        if (potential_unit_id[1] != -1 && info.potential_units.group(potential_unit_id[1]).size() < size_by_color[0]) {
-            auto ret = board_.ReasonForBlock(info, i);
-            auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
-            ret.insert(ret.end(), app.begin(), app.end());
-            return ret;
-        }
-
-        if (num != -1) {
-            // Connected component larger than the clue number
-            if (num < size_by_color[0] || num < size_by_color[1]) {
-                return board_.ReasonForBlock(info, i);
-            }
-
-            // Possible connected component size smaller than the clue number
-            // TODO: compute more refined reason
-            if (potential_unit_id[0] != -1 && num > info.potential_units.group(potential_unit_id[0]).size()) {
-                auto ret = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
-                if (!has_num[0]) {
-                    auto app = board_.ReasonForBlock(info, i);
-                    ret.insert(ret.end(), app.begin(), app.end());
-                }
-                return ret;
-            }
-            if (potential_unit_id[1] != -1 && num > info.potential_units.group(potential_unit_id[1]).size()) {
-                auto ret = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
-                if (!has_num[1]) {
-                    auto app = board_.ReasonForBlock(info, i);
-                    ret.insert(ret.end(), app.begin(), app.end());
-                }
-                return ret;
-            }
         }
     }
 
