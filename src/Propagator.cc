@@ -268,6 +268,7 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
     // connecter & size checker
     for (int i = 0; i < info.blocks.num_groups(); ++i) {
         int num = -1;
+        bool has_num[2] = {false, false};
         int size_by_color[2] = {0, 0};
         int potential_unit_id[2] = {-1, -1};
         for (auto [y, x] : info.blocks.group(i)) {
@@ -287,6 +288,7 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
             ++size_by_color[c];
             int n = problem_.num(y, x);
             if (n > 0) {
+                has_num[c] = true;
                 if (num == -1) {
                     num = n;
                 } else if (num != n) {
@@ -320,15 +322,19 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
             // Possible connected component size smaller than the clue number
             // TODO: compute more refined reason
             if (potential_unit_id[0] != -1 && num > info.potential_units.group(potential_unit_id[0]).size()) {
-                auto ret = board_.ReasonForBlock(info, i);
-                auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
-                ret.insert(ret.end(), app.begin(), app.end());
+                auto ret = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[0]);
+                if (!has_num[0]) {
+                    auto app = board_.ReasonForBlock(info, i);
+                    ret.insert(ret.end(), app.begin(), app.end());
+                }
                 return ret;
             }
             if (potential_unit_id[1] != -1 && num > info.potential_units.group(potential_unit_id[1]).size()) {
-                auto ret = board_.ReasonForBlock(info, i);
-                auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
-                ret.insert(ret.end(), app.begin(), app.end());
+                auto ret = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id[1]);
+                if (!has_num[1]) {
+                    auto app = board_.ReasonForBlock(info, i);
+                    ret.insert(ret.end(), app.begin(), app.end());
+                }
                 return ret;
             }
         }
