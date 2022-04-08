@@ -5,10 +5,7 @@
 #include "core/Solver.h"
 
 #include "BoardManager.h"
-#include "Connecter.h"
 #include "Propagator.h"
-#include "ShapeFinder.h"
-#include "SizeChecker.h"
 
 namespace {
 
@@ -33,11 +30,6 @@ std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem) {
     int width = problem.width();
 
     Glucose::Var origin = BoardManager::AllocateVariables(solver, problem.height(), problem.width());
-    /*
-    solver.addConstraint(std::make_unique<ShapeFinder>(problem, origin));
-    solver.addConstraint(std::make_unique<Connecter>(problem, origin));
-    solver.addConstraint(std::make_unique<SizeChecker>(problem, origin));
-    */
     solver.addConstraint(std::make_unique<Propagator>(problem, origin));
 
     // Rough check to forbid unnecessary borders
