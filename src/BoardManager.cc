@@ -100,6 +100,19 @@ std::vector<Glucose::Lit> BoardManager::ReasonForBlock(const BoardInfo& info, in
     return ret;
 }
 
+std::vector<Glucose::Lit> BoardManager::ReasonForUnit(const BoardInfo& info, int block_id) const {
+    std::vector<Glucose::Lit> ret;
+    for (auto [y, x] : info.units.group(block_id)) {
+        if (y < height_ - 1 && info.units.group_id(y + 1, x) == block_id && vertical(y, x) == Border::kConnected) {
+            ret.push_back(Glucose::mkLit(VerticalVar(y, x), true));
+        }
+        if (x < width_ - 1 && info.units.group_id(y, x + 1) == block_id && horizontal(y, x) == Border::kConnected) {
+            ret.push_back(Glucose::mkLit(HorizontalVar(y, x), true));
+        }
+    }
+    return ret;
+}
+
 std::vector<Glucose::Lit> BoardManager::ReasonForPotentialUnitBoundary(const BoardInfo& info,
                                                                        int potential_unit_id) const {
     std::vector<Glucose::Lit> ret;

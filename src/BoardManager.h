@@ -61,6 +61,9 @@ public:
 
     std::vector<Glucose::Var> RelatedVariables() const;
 
+    // Compute the reason (a set of literals) building a unit
+    std::vector<Glucose::Lit> ReasonForUnit(const BoardInfo& info, int block_id) const;
+
     // Compute the reason (a set of literals) building a block
     std::vector<Glucose::Lit> ReasonForBlock(const BoardInfo& info, int block_id) const;
 

@@ -160,7 +160,8 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
 
         std::pair<int, int> one_cell = info.units.group(i)[0];
         std::vector<std::pair<int, int>> origins;
-        for (int g : adjacent_potential_units[info.potential_units.group_id(one_cell.first, one_cell.second)]) {
+        int potential_unit_id = info.potential_units.group_id(one_cell.first, one_cell.second);
+        for (int g : adjacent_potential_units[potential_unit_id]) {
             for (auto p : info.potential_units.group(g)) {
                 origins.push_back(p);
             }
@@ -169,9 +170,11 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
         auto transforms = EnumerateTransforms(info.units.group(i), connections);
         bool found = false;
 
+        std::set<Glucose::Lit> blockers;
         for (auto& [t_group, t_connections] : transforms) {
             for (auto [origin_y, origin_x] : origins) {
                 bool invalid = false;
+                std::optional<Glucose::Lit> blocker_cand;
 
                 for (auto [dy, dx] : t_connections) {
                     int py = origin_y * 2 + dy;
@@ -179,20 +182,24 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
 
                     if (!(0 <= py && py <= (height - 1) * 2 && 0 <= px && px <= (width - 1) * 2)) {
                         invalid = true;
+                        blocker_cand = std::nullopt;
                         break;
                     }
                     if (problem_.color(py >> 1, px >> 1) != problem_.color((py + 1) >> 1, (px + 1) >> 1)) {
                         invalid = true;
+                        blocker_cand = std::nullopt;
                         break;
                     }
                     if ((py & 1) == 1) {
                         if (board_.vertical(py >> 1, px >> 1) == BoardManager::Border::kWall) {
                             invalid = true;
+                            blocker_cand = Glucose::mkLit(board_.VerticalVar(py >> 1, px >> 1), false);
                             break;
                         }
                     } else {
                         if (board_.horizontal(py >> 1, px >> 1) == BoardManager::Border::kWall) {
                             invalid = true;
+                            blocker_cand = Glucose::mkLit(board_.HorizontalVar(py >> 1, px >> 1), false);
                             break;
                         }
                     }
@@ -202,6 +209,9 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                     found = true;
                     break;
                 }
+                if (blocker_cand) {
+                    blockers.insert(*blocker_cand);
+                }
             }
 
             if (found) {
@@ -210,8 +220,48 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
         }
 
         if (!found) {
-            // TODO: compute reason
-            return std::vector<Glucose::Lit>();
+            // TODO: compute more refined reason
+            std::set<Glucose::Lit> reason = blockers;
+            {
+                auto app = board_.ReasonForUnit(info, i);
+                reason.insert(app.begin(), app.end());
+            }
+            {
+                auto app = board_.ReasonForPotentialUnitBoundary(info, potential_unit_id);
+                reason.insert(app.begin(), app.end());
+            }
+            for (int g : adjacent_potential_units[potential_unit_id]) {
+                auto app = board_.ReasonForPotentialUnitBoundary(info, g);
+                reason.insert(app.begin(), app.end());
+            }
+            for (auto [y, x] : info.potential_units.group(potential_unit_id)) {
+                if (y > 0 && board_.vertical(y - 1, x) == BoardManager::Border::kWall &&
+                    problem_.color(y, x) != problem_.color(y - 1, x) &&
+                    adjacent_potential_units_set.count({potential_unit_id, info.potential_units.group_id(y - 1, x)}) ==
+                        0) {
+                    reason.insert(Glucose::mkLit(board_.VerticalVar(y - 1, x)));
+                }
+                if (y < height - 1 && board_.vertical(y, x) == BoardManager::Border::kWall &&
+                    problem_.color(y, x) != problem_.color(y + 1, x) &&
+                    adjacent_potential_units_set.count({potential_unit_id, info.potential_units.group_id(y + 1, x)}) ==
+                        0) {
+                    reason.insert(Glucose::mkLit(board_.VerticalVar(y, x)));
+                }
+                if (x > 0 && board_.horizontal(y, x - 1) == BoardManager::Border::kWall &&
+                    problem_.color(y, x) != problem_.color(y, x - 1) &&
+                    adjacent_potential_units_set.count({potential_unit_id, info.potential_units.group_id(y, x - 1)}) ==
+                        0) {
+                    reason.insert(Glucose::mkLit(board_.HorizontalVar(y, x - 1)));
+                }
+                if (x < width - 1 && board_.horizontal(y, x) == BoardManager::Border::kWall &&
+                    problem_.color(y, x) != problem_.color(y, x + 1) &&
+                    adjacent_potential_units_set.count({potential_unit_id, info.potential_units.group_id(y, x + 1)}) ==
+                        0) {
+                    reason.insert(Glucose::mkLit(board_.HorizontalVar(y, x)));
+                }
+            }
+
+            return std::vector<Glucose::Lit>(reason.begin(), reason.end());
         }
     }
 
