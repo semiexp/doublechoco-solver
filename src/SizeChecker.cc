@@ -2,8 +2,7 @@
 
 #include "Grid.h"
 
-SizeChecker::SizeChecker(const Problem& problem, Glucose::Var origin)
-    : problem_(problem), board_(problem.height(), problem.width(), origin) {}
+SizeChecker::SizeChecker(const Problem& problem, Glucose::Var origin) : problem_(problem), board_(problem, origin) {}
 
 bool SizeChecker::initialize(Glucose::Solver& solver) {
     std::vector<Glucose::Var> related_vars = board_.RelatedVariables();

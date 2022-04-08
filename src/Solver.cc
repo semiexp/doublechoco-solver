@@ -63,7 +63,7 @@ std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem) {
     ret.horizontal = std::vector<std::vector<DoublechocoAnswer::Border>>(height);
     ret.vertical = std::vector<std::vector<DoublechocoAnswer::Border>>(height - 1);
 
-    BoardManager board(height, width, origin);
+    BoardManager board(problem, origin);
     for (Glucose::Var v : board.RelatedVariables()) {
         board.Decide(Glucose::mkLit(v, solver.modelValue(v) == l_False));
     }

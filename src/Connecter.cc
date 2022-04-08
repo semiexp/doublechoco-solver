@@ -2,8 +2,7 @@
 
 #include "Grid.h"
 
-Connecter::Connecter(const Problem& problem, Glucose::Var origin)
-    : problem_(problem), board_(problem.height(), problem.width(), origin) {}
+Connecter::Connecter(const Problem& problem, Glucose::Var origin) : problem_(problem), board_(problem, origin) {}
 
 bool Connecter::initialize(Glucose::Solver& solver) {
     std::vector<Glucose::Var> related_vars = board_.RelatedVariables();

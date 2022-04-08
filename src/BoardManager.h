@@ -2,7 +2,34 @@
 
 #include "core/Solver.h"
 
+#include "Grid.h"
+#include "Problem.h"
+
+#include <algorithm>
 #include <vector>
+
+class GroupInfo {
+public:
+    GroupInfo(Grid<int>&& group_id);
+
+    int group_id(int y, int x) { return group_id_.at(y, x); }
+    const std::vector<std::vector<std::pair<int, int>>>& groups() { return groups_; }
+    const std::vector<std::pair<int, int>>& group(int id) { return groups_[id]; };
+
+private:
+    Grid<int> group_id_;
+    std::vector<std::vector<std::pair<int, int>>> groups_;
+};
+
+// Connectivity information of a puzzle board.
+// "unit": connected components consists of cells of one color (connections between differently colored cells are
+// ignored). "block": connected components consists of cells of both colors. "potential" means the connected components
+// are computed assuming that all undecided borders are connecting adjacent cells.
+struct BoardInfo {
+    GroupInfo units;
+    GroupInfo blocks;
+    GroupInfo potential_units;
+};
 
 // This solver uses H * (W - 1) + (H - 1) * W variables to represent answers.
 // The first H * (W - 1) variables correspond to "horizontal" connections, and the remaining to "vertical".
@@ -16,12 +43,17 @@ public:
         kConnected,
     };
 
-    BoardManager(int height, int width, Glucose::Var origin);
+    BoardManager(const Problem& problem, Glucose::Var origin);
+
+    int height() const { return height_; }
+    int width() const { return width_; }
 
     Border horizontal(int y, int x) const;
     Border vertical(int y, int x) const;
     Glucose::Var HorizontalVar(int y, int x) const;
     Glucose::Var VerticalVar(int y, int x) const;
+
+    const Problem& problem() const { return problem_; }
 
     void Decide(Glucose::Lit lit);
     void Undo(Glucose::Lit lit);
@@ -33,10 +65,13 @@ public:
 
     static Glucose::Var AllocateVariables(Glucose::Solver& solver, int height, int width);
 
+    BoardInfo ComputeBoardInfo() const;
+
     void Dump() const;
 
 private:
     int height_, width_;
+    Problem problem_;
     Glucose::Var origin_;
     std::vector<Border> horizontal_, vertical_;
     std::vector<Glucose::Lit> decisions_;

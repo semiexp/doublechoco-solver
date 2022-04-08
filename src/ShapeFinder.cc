@@ -6,8 +6,7 @@
 
 #include "Grid.h"
 
-ShapeFinder::ShapeFinder(const Problem& problem, Glucose::Var origin)
-    : problem_(problem), board_(problem.height(), problem.width(), origin) {}
+ShapeFinder::ShapeFinder(const Problem& problem, Glucose::Var origin) : problem_(problem), board_(problem, origin) {}
 
 bool ShapeFinder::initialize(Glucose::Solver& solver) {
     std::vector<Glucose::Var> related_vars = board_.RelatedVariables();

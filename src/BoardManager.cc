@@ -2,9 +2,26 @@
 
 #include <cassert>
 
-BoardManager::BoardManager(int height, int width, Glucose::Var origin)
-    : height_(height), width_(width), origin_(origin), horizontal_(height * (width - 1), Border::kUndecided),
-      vertical_((height - 1) * width, Border::kUndecided) {}
+GroupInfo::GroupInfo(Grid<int>&& group_id) : group_id_(group_id) {
+    int max_group_id = 0;
+    for (int y = 0; y < group_id_.height(); ++y) {
+        for (int x = 0; x < group_id_.width(); ++x) {
+            max_group_id = std::max(max_group_id, group_id_.at(y, x));
+        }
+    }
+
+    groups_ = std::vector<std::vector<std::pair<int, int>>>(max_group_id + 1);
+    for (int y = 0; y < group_id_.height(); ++y) {
+        for (int x = 0; x < group_id_.width(); ++x) {
+            groups_[group_id_.at(y, x)].push_back({y, x});
+        }
+    }
+}
+
+BoardManager::BoardManager(const Problem& problem, Glucose::Var origin)
+    : height_(problem.height()), width_(problem.width()), problem_(problem), origin_(origin),
+      horizontal_(problem.height() * (problem.width() - 1), Border::kUndecided),
+      vertical_((problem.height() - 1) * problem.width(), Border::kUndecided) {}
 
 BoardManager::Border BoardManager::horizontal(int y, int x) const {
     assert(0 <= y && y < height_ && 0 <= x && x < width_ - 1);
@@ -87,6 +104,62 @@ Glucose::Var BoardManager::AllocateVariables(Glucose::Solver& solver, int height
         solver.newVar();
     }
     return head;
+}
+
+namespace {
+
+void ComputeConnectedComponentsSearch(const BoardManager& board, bool ignore_color, bool is_potential,
+                                      Grid<int>& group_id, int y, int x, int id) {
+    if (group_id.at(y, x) != -1) {
+        return;
+    }
+    group_id.at(y, x) = id;
+
+    auto maybe_traverse = [&](int y2, int x2, BoardManager::Border border) {
+        if (!ignore_color && board.problem().color(y2, x2) != board.problem().color(y, x)) {
+            return;
+        }
+        if (border == BoardManager::Border::kConnected ||
+            (is_potential && border == BoardManager::Border::kUndecided)) {
+            ComputeConnectedComponentsSearch(board, ignore_color, is_potential, group_id, y2, x2, id);
+        }
+    };
+
+    if (y > 0) {
+        maybe_traverse(y - 1, x, board.vertical(y - 1, x));
+    }
+    if (y < board.height() - 1) {
+        maybe_traverse(y + 1, x, board.vertical(y, x));
+    }
+    if (x > 0) {
+        maybe_traverse(y, x - 1, board.horizontal(y, x - 1));
+    }
+    if (x < board.width() - 1) {
+        maybe_traverse(y, x + 1, board.horizontal(y, x));
+    }
+}
+
+Grid<int> ComputeConnectedComponents(const BoardManager& board, bool ignore_color, bool is_potential) {
+    Grid<int> group_id(board.height(), board.width(), -1);
+    int id_last = 0;
+    for (int y = 0; y < board.height(); ++y) {
+        for (int x = 0; x < board.width(); ++x) {
+            if (group_id.at(y, x) == -1) {
+                ComputeConnectedComponentsSearch(board, ignore_color, is_potential, group_id, y, x, id_last++);
+            }
+        }
+    }
+    return group_id;
+}
+
+} // namespace
+
+BoardInfo BoardManager::ComputeBoardInfo() const {
+    return BoardInfo{
+        ComputeConnectedComponents(*this, false, false),
+        ComputeConnectedComponents(*this, true, false),
+        ComputeConnectedComponents(*this, false, true),
+    };
 }
 
 void BoardManager::Dump() const {
