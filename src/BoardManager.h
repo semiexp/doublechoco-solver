@@ -12,8 +12,9 @@ class GroupInfo {
 public:
     GroupInfo(Grid<int>&& group_id);
 
-    int group_id(int y, int x) { return group_id_.at(y, x); }
-    const std::vector<std::vector<std::pair<int, int>>>& groups() { return groups_; }
+    int group_id(int y, int x) const { return group_id_.at(y, x); }
+    const std::vector<std::vector<std::pair<int, int>>>& groups() const { return groups_; }
+    int num_groups() const { return groups_.size(); }
     const std::vector<std::pair<int, int>>& group(int id) { return groups_[id]; };
 
 private:

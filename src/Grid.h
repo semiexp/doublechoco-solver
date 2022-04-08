@@ -9,6 +9,10 @@ public:
         data_ = new T[height * width];
         std::fill(data_, data_ + height * width, initial);
     }
+    Grid(const Grid<T>& other) : height_(other.height_), width_(other.width_) {
+        data_ = new T[height_ * width_];
+        std::copy(other.data_, other.data_ + height_ * width_, data_);
+    }
 
     ~Grid() { delete[] data_; }
 
