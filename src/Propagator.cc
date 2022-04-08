@@ -34,6 +34,11 @@ bool Propagator::propagate(Glucose::Solver& solver, Glucose::Lit p) {
     solver.registerUndo(var(p), this);
     board_.Decide(p);
 
+    if (num_pending_propagation() > 0) {
+        reasons_.push_back({});
+        return true;
+    }
+
     auto res = DetectInconsistency();
     if (res.has_value()) {
         reasons_.push_back(*res);
