@@ -70,6 +70,9 @@ public:
     // Compute the reason prohibiting a potential unit from expanding
     std::vector<Glucose::Lit> ReasonForPotentialUnitBoundary(const BoardInfo& info, int potential_unit_id) const;
 
+    // Compute the reason why cells (ya, xa) and (yb, xb) are connected
+    std::vector<Glucose::Lit> ReasonForPath(int ya, int xa, int yb, int xb) const;
+
     // Computes the most straightforward "reason", in which all the known decisions are related.
     void calcReasonSimple(Glucose::Lit p, Glucose::Lit extra, Glucose::vec<Glucose::Lit>& out_reason);
 

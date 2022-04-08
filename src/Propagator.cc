@@ -201,6 +201,23 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
         }
     }
 
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (y < height - 1 && info.blocks.group_id(y, x) == info.blocks.group_id(y + 1, x) &&
+                board_.vertical(y, x) == BoardManager::Border::kWall) {
+                auto ret = board_.ReasonForPath(y, x, y + 1, x);
+                ret.push_back(Glucose::mkLit(board_.VerticalVar(y, x)));
+                return ret;
+            }
+            if (x < width - 1 && info.blocks.group_id(y, x) == info.blocks.group_id(y, x + 1) &&
+                board_.horizontal(y, x) == BoardManager::Border::kWall) {
+                auto ret = board_.ReasonForPath(y, x, y, x + 1);
+                ret.push_back(Glucose::mkLit(board_.HorizontalVar(y, x)));
+                return ret;
+            }
+        }
+    }
+
     // shape finder
     std::set<std::pair<int, int>> adjacent_potential_units_set;
     for (int y = 0; y < height; ++y) {

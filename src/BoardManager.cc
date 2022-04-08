@@ -1,6 +1,7 @@
 #include "BoardManager.h"
 
 #include <cassert>
+#include <queue>
 
 GroupInfo::GroupInfo(Grid<int>&& group_id) : group_id_(group_id) {
     int max_group_id = 0;
@@ -133,6 +134,56 @@ std::vector<Glucose::Lit> BoardManager::ReasonForPotentialUnitBoundary(const Boa
             problem_.color(y, x) == problem_.color(y, x + 1) && horizontal(y, x) == Border::kWall) {
             ret.push_back(Glucose::mkLit(HorizontalVar(y, x)));
         }
+    }
+    return ret;
+}
+
+std::vector<Glucose::Lit> BoardManager::ReasonForPath(int ya, int xa, int yb, int xb) const {
+    Grid<std::pair<int, int>> from(height_, width_, std::make_pair(-1, -1));
+    from.at(ya, xa) = std::make_pair(-2, -2);
+
+    std::queue<std::pair<int, int>> qu;
+    qu.push({ya, xa});
+    while (!qu.empty()) {
+        auto [y, x] = qu.front();
+        qu.pop();
+        if (y == yb && x == xb) {
+            break;
+        }
+
+        if (y > 0 && vertical(y - 1, x) == Border::kConnected && from.at(y - 1, x).first == -1) {
+            from.at(y - 1, x) = std::make_pair(y, x);
+            qu.push({y - 1, x});
+        }
+        if (y < height_ - 1 && vertical(y, x) == Border::kConnected && from.at(y + 1, x).first == -1) {
+            from.at(y + 1, x) = std::make_pair(y, x);
+            qu.push({y + 1, x});
+        }
+        if (x > 0 && horizontal(y, x - 1) == Border::kConnected && from.at(y, x - 1).first == -1) {
+            from.at(y, x - 1) = std::make_pair(y, x);
+            qu.push({y, x - 1});
+        }
+        if (x < width_ - 1 && horizontal(y, x) == Border::kConnected && from.at(y, x + 1).first == -1) {
+            from.at(y, x + 1) = std::make_pair(y, x);
+            qu.push({y, x + 1});
+        }
+    }
+
+    assert(from.at(yb, xb).first != -1);
+
+    std::vector<Glucose::Lit> ret;
+    int y = yb;
+    int x = xb;
+    while (!(y == ya && x == xa)) {
+        auto [y_from, x_from] = from.at(y, x);
+
+        if (y == y_from) {
+            ret.push_back(Glucose::mkLit(HorizontalVar(y, std::min(x, x_from)), true));
+        } else {
+            ret.push_back(Glucose::mkLit(VerticalVar(std::min(y, y_from), x), true));
+        }
+        y = y_from;
+        x = x_from;
     }
     return ret;
 }
