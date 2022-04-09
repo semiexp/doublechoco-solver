@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
     int height = problem.height();
     int width = problem.width();
 
-    std::optional<DoublechocoAnswer> ans = FindAnswer(problem);
+    std::optional<DoublechocoAnswer> ans = Solve(problem);
     assert(ans.has_value());
 
     for (int y = -1; y < height * 2; ++y) {
