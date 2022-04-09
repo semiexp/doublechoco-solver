@@ -4,6 +4,7 @@
 
 #include "core/Solver.h"
 
+#include "Balancer.h"
 #include "BoardManager.h"
 #include "Propagator.h"
 
@@ -31,6 +32,8 @@ std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem) {
 
     Glucose::Var origin = BoardManager::AllocateVariables(solver, problem.height(), problem.width());
     solver.addConstraint(std::make_unique<Propagator>(problem, origin));
+    // TODO: Balancer is unused because it makes the solver slow
+    // solver.addConstraint(std::make_unique<Balancer>(problem, origin));
 
     // Rough check to forbid unnecessary borders
     // TODO: add a compehensive check
