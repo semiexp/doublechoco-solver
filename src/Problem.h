@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cassert>
+#include <optional>
+#include <string>
 #include <vector>
 
 class Problem {
@@ -16,6 +18,8 @@ public:
 
     int num(int y, int x) const { return num_[index(y, x)]; }
     void setNum(int y, int x, int n) { num_[index(y, x)] = n; }
+
+    static std::optional<Problem> ParseURL(const std::string& url);
 
 private:
     int height_, width_;
