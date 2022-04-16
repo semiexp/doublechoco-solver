@@ -70,9 +70,9 @@ void Propagator::undo(Glucose::Solver& solver, Glucose::Lit p) {
 
 namespace {
 
-std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>
-Transform(const std::vector<std::pair<int, int>>& group, const std::vector<std::pair<int, int>>& connections, int yk,
-          int xk, int flip) {
+void Transform(const std::vector<std::pair<int, int>>& group, const std::vector<std::pair<int, int>>& connections,
+               std::vector<std::pair<int, int>>& group_new, std::vector<std::pair<int, int>>& connections_new, int yk,
+               int xk, int flip) {
     auto trans = [&](int y, int x) {
         y *= yk;
         x *= xk;
@@ -82,7 +82,9 @@ Transform(const std::vector<std::pair<int, int>>& group, const std::vector<std::
         return std::make_pair(y, x);
     };
 
-    std::vector<std::pair<int, int>> group_new, connections_new;
+    group_new.clear();
+    connections_new.clear();
+
     for (auto& [y, x] : group) {
         group_new.push_back(trans(y, x));
     }
@@ -103,20 +105,22 @@ Transform(const std::vector<std::pair<int, int>>& group, const std::vector<std::
         x -= min_pos.second * 2;
     }
     std::sort(group_new.begin(), group_new.end());
-    return {group_new, connections_new};
 }
 
-std::vector<std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>>
-EnumerateTransforms(const std::vector<std::pair<int, int>>& group,
-                    const std::vector<std::pair<int, int>>& connections) {
-    std::vector<std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>> ret;
+void EnumerateTransforms(
+    const std::vector<std::pair<int, int>>& group, const std::vector<std::pair<int, int>>& connections,
+    std::vector<std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>>& ret) {
+    ret.resize(8);
     for (int i = 0; i < 8; ++i) {
-        auto transformed = Transform(group, connections, (i >> 2) * 2 - 1, ((i >> 1) & 1) * 2 - 1, i & 1);
-        ret.push_back(transformed);
+        Transform(group, connections, ret[i].first, ret[i].second, (i >> 2) * 2 - 1, ((i >> 1) & 1) * 2 - 1, i & 1);
     }
     std::sort(ret.begin(), ret.end());
-    ret.erase(std::unique(ret.begin(), ret.end()), ret.end());
-    return ret;
+
+    auto it = std::unique(ret.begin(), ret.end());
+    for (; it != ret.end(); ++it) {
+        it->first.clear();
+        it->second.clear();
+    }
 }
 
 } // namespace
@@ -243,9 +247,15 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
         adjacent_potential_units[i].push_back(j);
     }
 
+    auto& transforms = transforms_;
+    std::vector<std::pair<int, int>> connections;
+    std::vector<std::pair<int, int>> origins;
+
     for (int i = 0; i < info.units.num_groups(); ++i) {
         // Find the same shape (of the opposite color) in a neighboring potential unit
-        std::vector<std::pair<int, int>> connections;
+        connections.clear();
+        origins.clear();
+
         for (auto [y, x] : info.units.group(i)) {
             if (y < height - 1 && info.units.group_id(y + 1, x) == i) {
                 connections.push_back({y * 2 + 1, x * 2});
@@ -256,7 +266,6 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
         }
 
         std::pair<int, int> one_cell = info.units.group(i)[0];
-        std::vector<std::pair<int, int>> origins;
         int potential_unit_id = info.potential_units.group_id(one_cell.first, one_cell.second);
         for (int g : adjacent_potential_units[potential_unit_id]) {
             for (auto p : info.potential_units.group(g)) {
@@ -264,11 +273,14 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
             }
         }
 
-        auto transforms = EnumerateTransforms(info.units.group(i), connections);
+        EnumerateTransforms(info.units.group(i), connections, transforms);
         bool found = false;
 
         std::set<Glucose::Lit> blockers;
         for (auto& [t_group, t_connections] : transforms) {
+            if (t_group.empty()) {
+                break;
+            }
             for (auto [origin_y, origin_x] : origins) {
                 bool invalid = false;
                 std::optional<Glucose::Lit> blocker_cand;

@@ -25,4 +25,5 @@ private:
     Problem problem_;
     BoardManager board_;
     std::vector<std::vector<Glucose::Lit>> reasons_;
+    std::vector<std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>> transforms_;
 };
