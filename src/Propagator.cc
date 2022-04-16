@@ -297,7 +297,9 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                 shape.connections.push_back({y * 2, x * 2 + 1});
             }
         }
-        shape.cells = info.units.group(i);
+        for (auto [y, x] : info.units.group(i)) {
+            shape.cells.push_back({y, x});
+        }
         shape.Normalize();
 
         std::pair<int, int> one_cell = info.units.group(i)[0];
