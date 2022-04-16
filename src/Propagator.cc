@@ -3,6 +3,7 @@
 #include <set>
 
 #include "Grid.h"
+#include "Shape.h"
 
 Propagator::Propagator(const Problem& problem, Glucose::Var origin) : problem_(problem), board_(problem, origin) {}
 
@@ -107,19 +108,50 @@ void Transform(const std::vector<std::pair<int, int>>& group, const std::vector<
     std::sort(group_new.begin(), group_new.end());
 }
 
-void EnumerateTransforms(
-    const std::vector<std::pair<int, int>>& group, const std::vector<std::pair<int, int>>& connections,
-    std::vector<std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>>& ret) {
+void EnumerateTransforms(const Shape& shape, std::vector<Shape>& ret) {
     ret.resize(8);
-    for (int i = 0; i < 8; ++i) {
-        Transform(group, connections, ret[i].first, ret[i].second, (i >> 2) * 2 - 1, ((i >> 1) & 1) * 2 - 1, i & 1);
-    }
-    std::sort(ret.begin(), ret.end());
+    ret[0] = shape;
+    int num = 1;
 
-    auto it = std::unique(ret.begin(), ret.end());
-    for (; it != ret.end(); ++it) {
-        it->first.clear();
-        it->second.clear();
+    ret[0].Rotate180To(ret[1]);
+    if (!(ret[0] == ret[1])) {
+        num = 2;
+    }
+
+    {
+        for (int i = 0; i < num; ++i) {
+            ret[i].Rotate90To(ret[i + num]);
+        }
+        bool is_unique = true;
+        for (int i = 0; i < num; ++i) {
+            if (ret[i] == ret[num]) {
+                is_unique = false;
+                break;
+            }
+        }
+        if (is_unique) {
+            num *= 2;
+        }
+    }
+
+    {
+        for (int i = 0; i < num; ++i) {
+            ret[i].FlipYTo(ret[i + num]);
+        }
+        bool is_unique = true;
+        for (int i = 0; i < num; ++i) {
+            if (ret[i] == ret[num]) {
+                is_unique = false;
+                break;
+            }
+        }
+        if (is_unique) {
+            num *= 2;
+        }
+    }
+
+    for (int i = num; i < 8; ++i) {
+        ret[i].clear();
     }
 }
 
@@ -247,23 +279,26 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
         adjacent_potential_units[i].push_back(j);
     }
 
+    Shape shape;
     auto& transforms = transforms_;
-    std::vector<std::pair<int, int>> connections;
+
     std::vector<std::pair<int, int>> origins;
 
     for (int i = 0; i < info.units.num_groups(); ++i) {
         // Find the same shape (of the opposite color) in a neighboring potential unit
-        connections.clear();
+        shape.clear();
         origins.clear();
 
         for (auto [y, x] : info.units.group(i)) {
             if (y < height - 1 && info.units.group_id(y + 1, x) == i) {
-                connections.push_back({y * 2 + 1, x * 2});
+                shape.connections.push_back({y * 2 + 1, x * 2});
             }
             if (x < width - 1 && info.units.group_id(y, x + 1) == i) {
-                connections.push_back({y * 2, x * 2 + 1});
+                shape.connections.push_back({y * 2, x * 2 + 1});
             }
         }
+        shape.cells = info.units.group(i);
+        shape.Normalize();
 
         std::pair<int, int> one_cell = info.units.group(i)[0];
         int potential_unit_id = info.potential_units.group_id(one_cell.first, one_cell.second);
@@ -273,14 +308,16 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
             }
         }
 
-        EnumerateTransforms(info.units.group(i), connections, transforms);
-        bool found = false;
+        EnumerateTransforms(shape, transforms);
 
+        bool found = false;
         std::set<Glucose::Lit> blockers;
-        for (auto& [t_group, t_connections] : transforms) {
-            if (t_group.empty()) {
+        for (auto& tr : transforms) {
+            if (tr.cells.empty()) {
                 break;
             }
+            auto& t_connections = tr.connections;
+
             for (auto [origin_y, origin_x] : origins) {
                 bool invalid = false;
                 std::optional<Glucose::Lit> blocker_cand;

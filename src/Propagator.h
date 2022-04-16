@@ -7,6 +7,7 @@
 
 #include "BoardManager.h"
 #include "Problem.h"
+#include "Shape.h"
 
 class Propagator : public Glucose::Constraint {
 public:
@@ -25,5 +26,5 @@ private:
     Problem problem_;
     BoardManager board_;
     std::vector<std::vector<Glucose::Lit>> reasons_;
-    std::vector<std::pair<std::vector<std::pair<int, int>>, std::vector<std::pair<int, int>>>> transforms_;
+    std::vector<Shape> transforms_;
 };
