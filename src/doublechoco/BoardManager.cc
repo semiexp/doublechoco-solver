@@ -1,4 +1,4 @@
-#include "BoardManager.h"
+#include "doublechoco/BoardManager.h"
 
 #include <cassert>
 #include <queue>

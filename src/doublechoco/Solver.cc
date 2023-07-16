@@ -1,4 +1,4 @@
-#include "Solver.h"
+#include "doublechoco/Solver.h"
 
 #include <memory>
 
@@ -6,9 +6,9 @@
 
 #include "core/Solver.h"
 
-#include "Balancer.h"
-#include "BoardManager.h"
-#include "Propagator.h"
+#include "doublechoco/Balancer.h"
+#include "doublechoco/BoardManager.h"
+#include "doublechoco/Propagator.h"
 
 namespace doublechoco {
 

@@ -2,8 +2,8 @@
 
 using namespace emscripten;
 
-#include "Problem.h"
-#include "Solver.h"
+#include "doublechoco/Problem.h"
+#include "doublechoco/Solver.h"
 
 #include <sstream>
 #include <string>

@@ -1,4 +1,4 @@
-#include "Problem.h"
+#include "doublechoco/Problem.h"
 
 namespace doublechoco {
 

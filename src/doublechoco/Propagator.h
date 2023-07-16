@@ -5,9 +5,9 @@
 #include "core/Constraint.h"
 #include "core/Solver.h"
 
-#include "BoardManager.h"
-#include "Problem.h"
-#include "Shape.h"
+#include "doublechoco/BoardManager.h"
+#include "doublechoco/Problem.h"
+#include "doublechoco/Shape.h"
 
 namespace doublechoco {
 

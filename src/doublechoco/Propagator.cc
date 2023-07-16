@@ -3,7 +3,7 @@
 #include <set>
 
 #include "Grid.h"
-#include "Shape.h"
+#include "doublechoco/Shape.h"
 
 namespace doublechoco {
 

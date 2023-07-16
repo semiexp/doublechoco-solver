@@ -3,7 +3,7 @@
 #include "core/Solver.h"
 
 #include "Grid.h"
-#include "Problem.h"
+#include "doublechoco/Problem.h"
 
 #include <algorithm>
 #include <vector>

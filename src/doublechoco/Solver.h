@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Problem.h"
+#include "doublechoco/Problem.h"
 
 #include <optional>
 #include <vector>

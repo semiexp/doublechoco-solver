@@ -1,5 +1,5 @@
-#include "Problem.h"
-#include "Solver.h"
+#include "doublechoco/Problem.h"
+#include "doublechoco/Solver.h"
 
 #include <cstdlib>
 #include <string>

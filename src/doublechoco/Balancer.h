@@ -5,7 +5,7 @@
 #include "core/Constraint.h"
 #include "core/Solver.h"
 
-#include "Problem.h"
+#include "doublechoco/Problem.h"
 
 namespace doublechoco {
 
