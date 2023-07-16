@@ -5,6 +5,8 @@
 #include "Grid.h"
 #include "Shape.h"
 
+namespace doublechoco {
+
 Propagator::Propagator(const Problem& problem, Glucose::Var origin) : problem_(problem), board_(problem, origin) {}
 
 bool Propagator::initialize(Glucose::Solver& solver) {
@@ -412,4 +414,6 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
     }
 
     return std::nullopt;
+}
+
 }

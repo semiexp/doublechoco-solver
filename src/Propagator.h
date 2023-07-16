@@ -9,6 +9,8 @@
 #include "Problem.h"
 #include "Shape.h"
 
+namespace doublechoco {
+
 class Propagator : public Glucose::Constraint {
 public:
     Propagator(const Problem& problem, Glucose::Var origin);
@@ -28,3 +30,5 @@ private:
     std::vector<std::vector<Glucose::Lit>> reasons_;
     std::vector<Shape> transforms_;
 };
+
+}

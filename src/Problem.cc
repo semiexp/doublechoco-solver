@@ -1,5 +1,7 @@
 #include "Problem.h"
 
+namespace doublechoco {
+
 Problem::Problem(int height, int width)
     : height_(height), width_(width), color_(height * width, -1), num_(height * width, -1) {}
 
@@ -86,4 +88,6 @@ std::optional<Problem> Problem::ParseURL(const std::string& url) {
         ++idx;
     }
     return problem;
+}
+
 }

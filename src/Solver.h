@@ -5,6 +5,8 @@
 #include <optional>
 #include <vector>
 
+namespace doublechoco {
+
 struct DoublechocoAnswer {
     enum Border {
         kUndecided,
@@ -17,3 +19,5 @@ struct DoublechocoAnswer {
 
 std::optional<DoublechocoAnswer> FindAnswer(const Problem& problem);
 std::optional<DoublechocoAnswer> Solve(const Problem& problem);
+
+}

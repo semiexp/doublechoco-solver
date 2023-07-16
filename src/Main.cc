@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <string>
 
+using namespace doublechoco;
+
 int main(int argc, char** argv) {
     std::optional<Problem> problem_opt = Problem::ParseURL(argv[1]);
     if (!problem_opt) {

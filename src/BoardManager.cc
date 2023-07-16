@@ -3,6 +3,8 @@
 #include <cassert>
 #include <queue>
 
+namespace doublechoco {
+
 GroupInfo::GroupInfo(Grid<int>&& group_id) : group_id_(group_id) {
     int max_group_id = 0;
     for (int y = 0; y < group_id_.height(); ++y) {
@@ -309,4 +311,6 @@ void BoardManager::Dump() const {
         printf("\n");
     }
     printf("\n");
+}
+
 }

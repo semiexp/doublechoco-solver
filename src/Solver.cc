@@ -10,6 +10,8 @@
 #include "BoardManager.h"
 #include "Propagator.h"
 
+namespace doublechoco {
+
 namespace {
 
 DoublechocoAnswer::Border ConvertBorder(BoardManager::Border b) {
@@ -145,4 +147,6 @@ std::optional<DoublechocoAnswer> Solve(const Problem& problem) {
         }
     }
     return ret;
+}
+
 }

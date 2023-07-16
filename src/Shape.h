@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <vector>
 
+namespace doublechoco {
+
 struct Shape {
     std::vector<std::pair<int, int>> cells; // invariant: `cells` must be sorted and (0, 0) must be in `cells`
     std::vector<std::pair<int, int>> connections;
@@ -16,3 +18,5 @@ struct Shape {
 
     bool operator==(const Shape& rhs) const;
 };
+
+}

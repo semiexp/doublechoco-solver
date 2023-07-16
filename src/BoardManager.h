@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <vector>
 
+namespace doublechoco {
+
 template <typename T> class Group {
 public:
     using iterator = typename std::vector<T>::const_iterator;
@@ -107,3 +109,5 @@ private:
     std::vector<Border> horizontal_, vertical_;
     std::vector<Glucose::Lit> decisions_;
 };
+
+}

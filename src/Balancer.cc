@@ -5,6 +5,8 @@
 
 #include "Grid.h"
 
+namespace doublechoco {
+
 namespace {
 
 class WeightedUnionFind {
@@ -293,4 +295,6 @@ void Balancer::undo(Glucose::Solver& solver, Glucose::Lit p) {
     assert(edge_deactivated_[e] == 1);
     edge_deactivated_[e] = 0;
     decision_order_.pop_back();
+}
+
 }

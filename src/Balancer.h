@@ -7,6 +7,8 @@
 
 #include "Problem.h"
 
+namespace doublechoco {
+
 // Ensure that all potential block have the equal number of black and white cells
 class Balancer : public Glucose::Constraint {
 public:
@@ -34,3 +36,5 @@ private:
     std::vector<int> decision_order_;
     int next_rank_;
 };
+
+}

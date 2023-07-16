@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+namespace doublechoco {
+
 void Shape::clear() {
     cells.clear();
     connections.clear();
@@ -63,3 +65,5 @@ void Shape::Normalize() {
 }
 
 bool Shape::operator==(const Shape& rhs) const { return cells == rhs.cells; }
+
+}

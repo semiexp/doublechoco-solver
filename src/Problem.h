@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+namespace doublechoco {
+
 class Problem {
 public:
     Problem(int height, int width);
@@ -30,3 +32,5 @@ private:
         return y * width_ + x;
     }
 };
+
+}

@@ -8,6 +8,8 @@ using namespace emscripten;
 #include <sstream>
 #include <string>
 
+using namespace doublechoco;
+
 std::string solve(const std::string& url) {
     std::optional<Problem> problem_opt = Problem::ParseURL(url);
     if (!problem_opt) {
