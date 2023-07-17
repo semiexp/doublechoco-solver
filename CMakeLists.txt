@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(source ${PROJECT_SOURCE_DIR}/glucose/core/Solver.cc ${PROJECT_SOURCE_DIR}/glucose/utils/Options.cc ${PROJECT_SOURCE_DIR}/src/doublechoco/BoardManager.cc ${PROJECT_SOURCE_DIR}/src/doublechoco/Problem.cc ${PROJECT_SOURCE_DIR}/src/doublechoco/Propagator.cc ${PROJECT_SOURCE_DIR}/src/doublechoco/Solver.cc ${PROJECT_SOURCE_DIR}/src/doublechoco/Balancer.cc ${PROJECT_SOURCE_DIR}/src/doublechoco/Shape.cc ${PROJECT_SOURCE_DIR}/src/Group.cc)
+set(evolmino_source ${PROJECT_SOURCE_DIR}/glucose/core/Solver.cc ${PROJECT_SOURCE_DIR}/glucose/utils/Options.cc ${PROJECT_SOURCE_DIR}/src/evolmino/BoardManager.cc ${PROJECT_SOURCE_DIR}/src/evolmino/Problem.cc ${PROJECT_SOURCE_DIR}/src/evolmino/Propagator.cc ${PROJECT_SOURCE_DIR}/src/evolmino/Solver.cc ${PROJECT_SOURCE_DIR}/src/Group.cc)
 
 if (USE_EMSCRIPTEN)
     set(CMAKE_CXX_COMPILER em++)
@@ -14,6 +15,8 @@ if (USE_EMSCRIPTEN)
     set_target_properties(doublechoco-solver PROPERTIES OUTPUT_NAME "doublechoco_solver.js")
 else()
     add_executable(doublechoco-solver ${source} ${PROJECT_SOURCE_DIR}/src/Main.cc)
+    add_executable(evolmino-solver ${evolmino_source} ${PROJECT_SOURCE_DIR}/src/EvolminoMain.cc)
 endif()
 
 target_include_directories(doublechoco-solver PUBLIC ${PROJECT_SOURCE_DIR}/glucose ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(evolmino-solver PUBLIC ${PROJECT_SOURCE_DIR}/glucose ${PROJECT_SOURCE_DIR}/src)

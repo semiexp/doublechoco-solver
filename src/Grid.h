@@ -29,6 +29,14 @@ public:
         return data_[y * width_ + x];
     }
 
+    T& at(const std::pair<int, int>& p) {
+        return at(p.first, p.second);
+    }
+
+    const T& at(const std::pair<int, int>& p) const {
+        return at(p.first, p.second);
+    }
+
 private:
     int height_, width_;
     T* data_;
