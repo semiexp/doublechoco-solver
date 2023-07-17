@@ -75,31 +75,34 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
 
     // Each block is reachable to an arrow cell
     for (int i = 0; i < board_info_simple.potential_blocks.num_groups(); ++i) {
-        bool has_square = false;
+        std::pair<int, int> square_cell{-1, -1};
         bool has_arrow = false;
         for (auto [y, x] : board_info_simple.potential_blocks.group(i)) {
             if (problem_.GetArrowId(y, x) >= 0) {
                 has_arrow = true;
             }
             if (board_.cell(y, x) == BoardManager::Cell::kSquare) {
-                has_square = true;
+                square_cell = std::make_pair(y, x);
             }
         }
-        if (has_square && !has_arrow) {
-            return board_.ReasonNaive();  // TODO: more refined reason
+        if (square_cell.first != -1 && !has_arrow) {
+            std::vector<Glucose::Lit> ret = board_.ReasonForPotentialUnitBoundary(board_info_simple, i);
+            ret.push_back(Glucose::mkLit(board_.CellVar(square_cell.first, square_cell.second)));
+            return ret;
         }
     }
 
     // Each block does not contain more than one arrow cell
     for (int i = 0; i < board_info_simple.blocks.num_groups(); ++i) {
-        int n_arrow = 0;
+        std::pair<int, int> arrow_cell{-1, -1};
         for (auto [y, x] : board_info_simple.blocks.group(i)) {
             if (problem_.GetArrowId(y, x) >= 0) {
-                ++n_arrow;
+                if (arrow_cell.first == -1) {
+                    arrow_cell = std::make_pair(y, x);
+                } else {
+                    return board_.ReasonForPath(y, x, arrow_cell.first, arrow_cell.second);
+                }
             }
-        }
-        if (n_arrow >= 2) {
-            return board_.ReasonNaive();  // TODO: more refined reason
         }
     }
 

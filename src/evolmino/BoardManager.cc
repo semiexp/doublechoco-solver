@@ -1,6 +1,7 @@
 #include "evolmino/BoardManager.h"
 
 #include <cassert>
+#include <queue>
 
 namespace evolmino {
 
@@ -115,6 +116,77 @@ Grid<int> ComputeConnectedComponents(const BoardManager& board, bool is_potentia
 
 }
 
+namespace {
+
+const int kFourNeighborY[] = {-1, 0, 1, 0};
+const int kFourNeighborX[] = {0, -1, 0, 1};
+
+}
+
+std::vector<Glucose::Lit> BoardManager::ReasonForPath(int ya, int xa, int yb, int xb) const {
+    assert(cell(ya, xa) == Cell::kSquare);
+    assert(cell(yb, xb) == Cell::kSquare);
+
+    Grid<std::pair<int, int>> bfs(height_, width_, {-1, -1});
+    std::queue<std::pair<int, int>> qu;
+    bfs.at(ya, xa) = std::make_pair(-2, -2);
+    qu.push({ya, xa});
+
+    while (!qu.empty()) {
+        auto [y, x] = qu.front();
+        qu.pop();
+
+        if (y == yb && x == xb) {
+            break;
+        }
+
+        for (int d = 0; d < 4; ++d) {
+            int y2 = y + kFourNeighborY[d];
+            int x2 = x + kFourNeighborX[d];
+
+            if (!(0 <= y2 && y2 < height_ && 0 <= x2 && x2 < width_)) {
+                continue;
+            }
+            if (cell(y2, x2) != Cell::kSquare) {
+                continue;
+            }
+            if (bfs.at(y2, x2).first != -1) {
+                continue;
+            }
+            bfs.at(y2, x2) = std::make_pair(y, x);
+            qu.push({y2, x2});
+        }
+    }
+
+    assert(bfs.at(yb, xb).first != -1);
+    std::vector<Glucose::Lit> ret;
+
+    int y = yb, x = xb;
+    while (y >= 0 && x >= 0) {
+        ret.push_back(Glucose::mkLit(CellVar(y, x)));
+        std::tie(y, x) = bfs.at(y, x);
+    }
+
+    return ret;
+}
+
+std::vector<Glucose::Lit> BoardManager::ReasonForPotentialUnitBoundary(const BoardInfoSimple& info, int potential_group_id) const {
+    std::vector<Glucose::Lit> ret;
+    for (auto [y, x] : info.potential_blocks.group(potential_group_id)) {
+        for (int d = 0; d < 4; ++d) {
+            int y2 = y + kFourNeighborY[d];
+            int x2 = x + kFourNeighborX[d];
+            if (!(0 <= y2 && y2 < height_ && 0 <= x2 && x2 < width_)) continue;
+            if (cell(y2, x2) == Cell::kEmpty) {
+                ret.push_back(Glucose::mkLit(CellVar(y2, x2), true));
+            }
+        }
+    }
+    std::sort(ret.begin(), ret.end());
+    ret.erase(std::unique(ret.begin(), ret.end()), ret.end());
+    return ret;
+}
+
 BoardInfoSimple BoardManager::ComputeBoardInfoSimple() const {
     return BoardInfoSimple {
         ComputeConnectedComponents(*this, false),
@@ -123,9 +195,6 @@ BoardInfoSimple BoardManager::ComputeBoardInfoSimple() const {
 }
 
 namespace {
-
-const int kFourNeighborY[] = {-1, 0, 1, 0};
-const int kFourNeighborX[] = {0, -1, 0, 1};
 
 void TraverseFloatingComponents(Grid<std::pair<BoardInfoDetailed::CellKind, int>>& cell_info, int y, int x, int id) {
     if (cell_info.at(y, x).second != -2) return;

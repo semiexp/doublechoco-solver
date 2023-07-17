@@ -70,6 +70,12 @@ public:
 
     static Glucose::Var AllocateVariables(Glucose::Solver& solver, int height, int width);
 
+    // Compute the reason why cells (ya, xa) and (yb, xb) are connected via square cells
+    std::vector<Glucose::Lit> ReasonForPath(int ya, int xa, int yb, int xb) const;
+
+    // Compute the reason prohibiting a potential block from expanding
+    std::vector<Glucose::Lit> ReasonForPotentialUnitBoundary(const BoardInfoSimple& info, int potential_group_id) const;
+
     BoardInfoSimple ComputeBoardInfoSimple() const;
 
     // This function must NOT be called if there exists a block containing more than one arrow cells.
