@@ -76,6 +76,12 @@ public:
     // Compute the reason prohibiting a potential block from expanding
     std::vector<Glucose::Lit> ReasonForPotentialUnitBoundary(const BoardInfoSimple& info, int potential_group_id) const;
 
+    // Compute the reason why a block is of at least the current size
+    std::vector<Glucose::Lit> ReasonForBlock(const BoardInfoDetailed& info, int block_id) const;
+
+    // Compute the reason prohibiting a block from expanding beyond adjacent floating regions
+    std::vector<Glucose::Lit> ReasonForAdjacentFloatingBoundary(const BoardInfoDetailed& info, int block_id) const;
+
     BoardInfoSimple ComputeBoardInfoSimple() const;
 
     // This function must NOT be called if there exists a block containing more than one arrow cells.

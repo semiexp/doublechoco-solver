@@ -187,6 +187,112 @@ std::vector<Glucose::Lit> BoardManager::ReasonForPotentialUnitBoundary(const Boa
     return ret;
 }
 
+std::vector<Glucose::Lit> BoardManager::ReasonForBlock(const BoardInfoDetailed& info, int block_id) const {
+    std::vector<Glucose::Lit> ret;
+
+    for (auto [y, x] : info.blocks[block_id]) {
+        ret.push_back(Glucose::mkLit(CellVar(y, x)));
+    }
+
+    return ret;
+}
+
+std::vector<Glucose::Lit> BoardManager::ReasonForAdjacentFloatingBoundary(const BoardInfoDetailed& info, int block_id) const {
+    std::vector<Glucose::Lit> ret;
+
+    // empty cell adjacent to a block cell
+    std::vector<int> disturbing_blocks;
+    for (auto [y, x] : info.blocks[block_id]) {
+        for (int d = 0; d < 4; ++d) {
+            int y2 = y + kFourNeighborY[d];
+            int x2 = x + kFourNeighborX[d];
+
+            if (!(0 <= y2 && y2 < height_ && 0 <= x2 && x2 < width_)) continue;
+            if (cell(y2, x2) == Cell::kEmpty) {
+                ret.push_back(Glucose::mkLit(CellVar(y2, x2), true));
+            } else if (cell(y2, x2) == Cell::kUndecided) {
+                for (int e = 0; e < 4; ++e) {
+                    int y3 = y2 + kFourNeighborY[e];
+                    int x3 = x2 + kFourNeighborX[e];
+
+                    if (!(0 <= y3 && y3 < height_ && 0 <= x3 && x3 < width_)) continue;
+                    auto i = info.cell_info.at(y3, x3);
+                    if (i.first == BoardInfoDetailed::CellKind::kBlock && i.second != block_id) {
+                        disturbing_blocks.push_back(i.second);
+                    }
+                }
+            }
+        }
+    }
+
+    // empty cell adjacent to a block-neighbor cell
+    for (auto& [y, x] : info.block_neighbors[block_id]) {
+        for (int d = 0; d < 4; ++d) {
+            int y2 = y + kFourNeighborY[d];
+            int x2 = x + kFourNeighborX[d];
+
+            if (!(0 <= y2 && y2 < height_ && 0 <= x2 && x2 < width_)) continue;
+            if (cell(y2, x2) == Cell::kEmpty) {
+                ret.push_back(Glucose::mkLit(CellVar(y2, x2), true));
+            }
+        }
+    }
+
+    // enumerate floating regions adjacent to a block-neighbor cell
+    std::vector<int> adjacent_floatings;
+    for (auto [y, x] : info.block_neighbors[block_id]) {
+        for (int d = 0; d < 4; ++d) {
+            int y2 = y + kFourNeighborY[d];
+            int x2 = x + kFourNeighborX[d];
+
+            if (!(0 <= y2 && y2 < height_ && 0 <= x2 && x2 < width_)) continue;
+            auto i = info.cell_info.at(y2, x2);
+            if (i.first == BoardInfoDetailed::CellKind::kFloating) {
+                adjacent_floatings.push_back(i.second);
+            } else if (i.first == BoardInfoDetailed::CellKind::kBlockNeighbor && i.second != block_id) {
+                disturbing_blocks.push_back(i.second);
+            }
+        }
+    }
+    std::sort(adjacent_floatings.begin(), adjacent_floatings.end());
+    adjacent_floatings.erase(std::unique(adjacent_floatings.begin(), adjacent_floatings.end()), adjacent_floatings.end());
+
+    for (int f : adjacent_floatings) {
+        for (auto& [y, x] : info.floatings[f]) {
+            for (int d = 0; d < 4; ++d) {
+                int y2 = y + kFourNeighborY[d];
+                int x2 = x + kFourNeighborX[d];
+
+                if (!(0 <= y2 && y2 < height_ && 0 <= x2 && x2 < width_)) continue;
+                if (cell(y2, x2) == Cell::kEmpty) {
+                    ret.push_back(Glucose::mkLit(CellVar(y2, x2), true));
+                    continue;
+                }
+
+                auto i = info.cell_info.at(y2, x2);
+
+                if (i.first == BoardInfoDetailed::CellKind::kBlockNeighbor && i.second != block_id) {
+                    disturbing_blocks.push_back(i.second);
+                }
+            }
+        }
+    }
+
+    std::sort(disturbing_blocks.begin(), disturbing_blocks.end());
+    disturbing_blocks.erase(std::unique(disturbing_blocks.begin(), disturbing_blocks.end()), disturbing_blocks.end());
+
+    for (int d : disturbing_blocks) {
+        for (auto [y, x] : info.blocks[d]) {
+            ret.push_back(Glucose::mkLit(CellVar(y, x)));
+        }
+    }
+
+    std::sort(ret.begin(), ret.end());
+    ret.erase(std::unique(ret.begin(), ret.end()), ret.end());
+
+    return ret;
+}
+
 BoardInfoSimple BoardManager::ComputeBoardInfoSimple() const {
     return BoardInfoSimple {
         ComputeConnectedComponents(*this, false),

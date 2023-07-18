@@ -122,6 +122,19 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                 assert(board_info_detail.cell_info.at(arrow[j]).first == BoardInfoDetailed::CellKind::kBlock);
                 int block_id = board_info_detail.cell_info.at(arrow[j]).second;
 
+                std::vector<bool> allowed_floatings(board_info_detail.floatings.size(), false);
+                for (auto [y, x] : board_info_detail.block_neighbors[block_id]) {
+                    for (int d = 0; d < 4; ++d) {
+                        int y2 = y + kFourNeighborY[d];
+                        int x2 = x + kFourNeighborX[d];
+                        if (!(0 <= y2 && y2 < board_.height() && 0 <= x2 && x2 < board_.width())) continue;
+                        auto f = board_info_detail.cell_info.at(y2, x2);
+                        if (f.first == BoardInfoDetailed::CellKind::kFloating) {
+                            allowed_floatings[f.second] = true;
+                        }
+                    }
+                }
+
                 if (last_block_id != -1) {
                     bool isok = false;
                     auto& last_block = board_info_detail.blocks[last_block_id];
@@ -145,7 +158,7 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                                 }
 
                                 auto& d = board_info_detail.cell_info.at(y2, x2);
-                                if (!(d.first == BoardInfoDetailed::CellKind::kFloating || d.second == block_id)) {
+                                if (!((d.first == BoardInfoDetailed::CellKind::kFloating && allowed_floatings[d.second]) || (d.first != BoardInfoDetailed::CellKind::kFloating && d.second == block_id))) {
                                     flg = false;
                                     break;
                                 }
@@ -160,7 +173,12 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                     }
 
                     if (!isok) {
-                        return board_.ReasonNaive();  // TODO: more refined reason
+                        std::vector<Glucose::Lit> ret = board_.ReasonForBlock(board_info_detail, last_block_id);
+                        ret.push_back(Glucose::mkLit(board_.CellVar(arrow[j].first, arrow[j].second)));
+                        for (auto lit : board_.ReasonForAdjacentFloatingBoundary(board_info_detail, block_id)) {
+                            ret.push_back(lit);
+                        }
+                        return ret;
                     }
                 }
 
@@ -226,8 +244,28 @@ std::optional<std::vector<Glucose::Lit>> Propagator::DetectInconsistency() {
                 int cur_lb = board_info_detail.blocks[cur_block_id].size();
                 int cur_ub = potential_block_size[cur_block_id];
 
-                if (!(last_ub + gap_ub >= cur_lb && cur_ub >= last_lb + 1)) {
-                    return board_.ReasonNaive();  // TODO: more refined reason
+                if (cur_ub < last_lb + 1) {
+                    // the last block is too large and the current block cannot be large enough
+                    std::vector<Glucose::Lit> ret = board_.ReasonForBlock(board_info_detail, last_block_id);
+                    ret.push_back(Glucose::mkLit(board_.CellVar(arrow[j].first, arrow[j].second)));
+                    for (auto lit : board_.ReasonForAdjacentFloatingBoundary(board_info_detail, cur_block_id)) {
+                        ret.push_back(lit);
+                    }
+                    return ret;
+                }
+                if (last_ub + gap_ub < cur_lb) {
+                    // the current block is too large and the last block cannot be large enough
+                    std::vector<Glucose::Lit> ret = board_.ReasonForBlock(board_info_detail, cur_block_id);
+                    ret.push_back(Glucose::mkLit(board_.CellVar(arrow[last_block_idx].first, arrow[last_block_idx].second)));
+                    for (auto lit : board_.ReasonForAdjacentFloatingBoundary(board_info_detail, last_block_id)) {
+                        ret.push_back(lit);
+                    }
+                    for (int k = last_block_idx + 2; k < j - 1; ++k) {
+                        if (board_.cell(arrow[k]) == BoardManager::Cell::kEmpty) {
+                            ret.push_back(Glucose::mkLit(board_.CellVar(arrow[k].first, arrow[k].second), true));
+                        }
+                    }
+                    return ret;
                 }
             }
 
