@@ -4,63 +4,16 @@ namespace evolmino {
 
 Propagator::Propagator(const Problem& problem, Glucose::Var origin) : problem_(problem), board_(problem, origin) {}
 
-bool Propagator::initialize(Glucose::Solver& solver) {
-    std::vector<Glucose::Var> related_vars = board_.RelatedVariables();
-
-    for (Glucose::Var var : related_vars) {
-        solver.addWatch(Glucose::mkLit(var, false), this);
-        solver.addWatch(Glucose::mkLit(var, this), this);
-    }
-
-    for (Glucose::Var var : related_vars) {
-        Glucose::lbool val = solver.value(var);
-        if (val == l_True) {
-            if (!propagate(solver, Glucose::mkLit(var, false))) {
-                return false;
-            }
-        } else if (val == l_False) {
-            if (!propagate(solver, Glucose::mkLit(var, true))) {
-                return false;
-            }
-        }
-    }
-
-    return true;
+std::vector<Glucose::Var> Propagator::RelatedVariables() {
+    return board_.RelatedVariables();
 }
 
-bool Propagator::propagate(Glucose::Solver& solver, Glucose::Lit p) {
-    solver.registerUndo(var(p), this);
+void Propagator::SimplePropagatorDecide(Glucose::Lit p) {
     board_.Decide(p);
-
-    if (num_pending_propagation() > 0) {
-        reasons_.push_back({});
-        return true;
-    }
-
-    auto res = DetectInconsistency();
-    if (res.has_value()) {
-        reasons_.push_back(*res);
-        return false;
-    } else {
-        reasons_.push_back({});
-        return true;
-    }
 }
 
-void Propagator::calcReason(Glucose::Solver& solver, Glucose::Lit p, Glucose::Lit extra,
-                            Glucose::vec<Glucose::Lit>& out_reason) {
-    assert(!reasons_.back().empty());
-    for (auto& lit : reasons_.back()) {
-        out_reason.push(lit);
-    }
-    if (extra != Glucose::lit_Undef) {
-        out_reason.push(extra);
-    }
-}
-
-void Propagator::undo(Glucose::Solver& solver, Glucose::Lit p) {
+void Propagator::SimplePropagatorUndo(Glucose::Lit p) {
     board_.Undo(p);
-    reasons_.pop_back();
 }
 
 namespace {

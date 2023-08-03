@@ -8,23 +8,21 @@
 #include "doublechoco/BoardManager.h"
 #include "doublechoco/Problem.h"
 #include "doublechoco/Shape.h"
+#include "SimplePropagator.h"
 
 namespace doublechoco {
 
-class Propagator : public Glucose::Constraint {
+class Propagator : public SimplePropagator<Propagator> {
 public:
     Propagator(const Problem& problem, Glucose::Var origin);
     virtual ~Propagator() = default;
 
-    bool initialize(Glucose::Solver& solver) override;
-    bool propagate(Glucose::Solver& solver, Glucose::Lit p) override;
-    void calcReason(Glucose::Solver& solver, Glucose::Lit p, Glucose::Lit extra,
-                    Glucose::vec<Glucose::Lit>& out_reason) override;
-    void undo(Glucose::Solver& solver, Glucose::Lit p) override;
-
-private:
+    std::vector<Glucose::Var> RelatedVariables();
+    void SimplePropagatorDecide(Glucose::Lit p);
+    void SimplePropagatorUndo(Glucose::Lit p);
     std::optional<std::vector<Glucose::Lit>> DetectInconsistency();
 
+private:
     Problem problem_;
     BoardManager board_;
     std::vector<std::vector<Glucose::Lit>> reasons_;
