@@ -2,6 +2,8 @@
 
 #include "Grid.h"
 
+#include <vector>
+
 template <typename T> class Group {
 public:
     using iterator = typename std::vector<T>::const_iterator;

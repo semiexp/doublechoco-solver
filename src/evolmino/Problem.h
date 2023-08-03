@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cassert>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "Grid.h"
